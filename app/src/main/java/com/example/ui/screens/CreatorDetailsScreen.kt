@@ -2,7 +2,6 @@ package com.example.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
-import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -21,12 +20,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -51,10 +46,11 @@ import com.example.network.OnlyhavenMediaItem
 import com.example.network.OnlyhavenScraper
 import com.example.ui.MainViewModel
 import com.example.ui.components.AppLottieLoadingAnimation
-import com.example.ui.components.Miniplayer
+import com.example.ui.components.AppTophead
+import com.example.ui.components.NavIconType
+import com.example.ui.components.OnlyhavenMediaGridItem
 import com.example.ui.components.OnlyhavenPreviewOverlay
 import com.example.ui.components.ShimmerBrush
-import com.example.ui.components.ZoomableImage
 import com.example.ui.theme.LocalAccentColor
 import com.example.ui.theme.LocalVaultPalette
 import kotlinx.coroutines.launch
@@ -64,6 +60,8 @@ enum class CreatorMediaTab {
     IMAGES,
     VIDEOS
 }
+
+typealias ModelMediaTab = CreatorMediaTab
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -153,7 +151,7 @@ fun CreatorDetailsScreen(
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 if (!append) {
-                    errorMessage = e.message ?: "Failed to load creator media"
+                    errorMessage = e.message ?: "Failed to load model media"
                 }
             } finally {
                 isLoading = false
@@ -211,7 +209,7 @@ fun CreatorDetailsScreen(
             contentWindowInsets = WindowInsets.statusBars,
             topBar = {
                 com.example.ui.components.AppTophead(
-                    title = "Creator Details",
+                    title = "Model Details",
                     navIconType = com.example.ui.components.NavIconType.BACK,
                     onNavClick = { viewModel.navigateBack() },
                     showBorder = false,
@@ -240,7 +238,7 @@ fun CreatorDetailsScreen(
                                 painter = painterResource(
                                     id = if (isSaved) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline
                                 ),
-                                contentDescription = if (isSaved) "Unsave Creator" else "Save Creator",
+                                contentDescription = if (isSaved) "Unsave Model" else "Save Model",
                                 tint = if (isSaved) Color(0xFFFF3B5C) else palette.textPrimary,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -538,122 +536,25 @@ fun CreatorDetailsScreen(
                                     CreatorMediaTab.IMAGES -> item.postAttachments.firstOrNull { it.kind == "image" } ?: item
                                     CreatorMediaTab.ALL -> item.postAttachments.firstOrNull() ?: item
                                 }
-                                val context = LocalContext.current
-                                val thumbRequest = remember(targetAttachment.thumbnailUrl) {
-                                    ImageRequest.Builder(context)
-                                        .data(targetAttachment.thumbnailUrl)
-                                        .crossfade(true)
-                                        .crossfade(350)
-                                        .build()
-                                }
-                                var isThumbLoaded by remember(targetAttachment.thumbnailUrl) { mutableStateOf(false) }
-                                var isThumbError by remember(targetAttachment.thumbnailUrl) { mutableStateOf(false) }
-
-                                val thumbAlpha by animateFloatAsState(
-                                    targetValue = if (isThumbLoaded && !isThumbError) 1f else 0f,
-                                    animationSpec = tween(durationMillis = 350, easing = LinearOutSlowInEasing),
-                                    label = "creator_details_thumb_alpha"
-                                )
-                                val thumbScale by animateFloatAsState(
-                                    targetValue = if (isThumbLoaded && !isThumbError) 1f else 0.93f,
-                                    animationSpec = tween(durationMillis = 350, easing = LinearOutSlowInEasing),
-                                    label = "creator_details_thumb_scale"
-                                )
-
-                                Box(
-                                    modifier = Modifier
-                                        .animateItem()
-                                        .fillMaxWidth()
-                                        .aspectRatio(4f / 5f)
-                                        .background(palette.cardBg)
-                                        .clip(RoundedCornerShape(3.dp))
-                                        .clickable {
-                                            initialPreviewIndex = when (activeTab) {
-                                                CreatorMediaTab.VIDEOS -> {
-                                                    val idx = item.postAttachments.indexOfFirst { it.kind == "video" }
-                                                    if (idx >= 0) idx else 0
-                                                }
-                                                CreatorMediaTab.IMAGES -> {
-                                                    val idx = item.postAttachments.indexOfFirst { it.kind == "image" }
-                                                    if (idx >= 0) idx else 0
-                                                }
-                                                CreatorMediaTab.ALL -> 0
+                                OnlyhavenMediaGridItem(
+                                    mediaItem = item,
+                                    targetAttachment = targetAttachment,
+                                    palette = palette,
+                                    onClick = {
+                                        initialPreviewIndex = when (activeTab) {
+                                            CreatorMediaTab.VIDEOS -> {
+                                                val idx = item.postAttachments.indexOfFirst { it.kind == "video" }
+                                                if (idx >= 0) idx else 0
                                             }
-                                            selectedPreviewItem = item
-                                        }
-                                ) {
-                                    if (!isThumbLoaded && !isThumbError) {
-                                        val shimmerBrush = ShimmerBrush(targetValue = 900f)
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .background(palette.cardBg)
-                                                .background(shimmerBrush),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            AppLottieLoadingAnimation(modifier = Modifier.size(28.dp))
-                                        }
-                                    }
-
-                                    if (isThumbError) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .background(palette.cardBg),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(id = R.drawable.ic_lock_error),
-                                                contentDescription = "Failed to load thumbnail",
-                                                tint = palette.textSecondary.copy(alpha = 0.45f),
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        }
-                                    }
-
-                                    AsyncImage(
-                                        model = thumbRequest,
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Crop,
-                                        onSuccess = {
-                                            isThumbLoaded = true
-                                            isThumbError = false
-                                        },
-                                        onError = {
-                                            isThumbLoaded = true
-                                            isThumbError = true
-                                        },
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .graphicsLayer {
-                                                alpha = thumbAlpha
-                                                scaleX = thumbScale
-                                                scaleY = thumbScale
+                                            CreatorMediaTab.IMAGES -> {
+                                                val idx = item.postAttachments.indexOfFirst { it.kind == "image" }
+                                                if (idx >= 0) idx else 0
                                             }
-                                    )
-
-                                    if (item.isMultiMedia) {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.ic_instagram_carousel),
-                                            contentDescription = "Multiple Items",
-                                            tint = Color.White,
-                                            modifier = Modifier
-                                                .align(Alignment.TopEnd)
-                                                .padding(8.dp)
-                                                .size(20.dp)
-                                        )
-                                    } else if (targetAttachment.kind == "video") {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.ic_player_play),
-                                            contentDescription = "Video",
-                                            tint = Color.White,
-                                            modifier = Modifier
-                                                .align(Alignment.TopEnd)
-                                                .padding(8.dp)
-                                                .size(18.dp)
-                                        )
+                                            CreatorMediaTab.ALL -> 0
+                                        }
+                                        selectedPreviewItem = item
                                     }
-                                }
+                                )
                             }
 
                             if (isLoadingMore) {
@@ -684,3 +585,12 @@ fun CreatorDetailsScreen(
         viewModel = viewModel
     )
 }
+
+/**
+ * ModelDetailsScreen is the modern name for CreatorDetailsScreen.
+ */
+@Composable
+fun ModelDetailsScreen(
+    viewModel: MainViewModel,
+    model: OnlyhavenCreator
+) = CreatorDetailsScreen(viewModel = viewModel, creator = model)

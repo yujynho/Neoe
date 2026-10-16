@@ -292,8 +292,7 @@ fun PlayerControlsOverlay(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(if (isFullscreen) 8.dp else 6.dp)
                     ) {
-                        // Other buttons hidden when settings popup is active
-                        if (!showSettingsPopup) {
+
                             // VR 360° Magic Window Suite (Only enabled in Fullscreen)
                             if (isFullscreen && onToggleVrMode != null) {
                                 if (isVrMode) {

@@ -14,8 +14,11 @@ data class OnlyhavenCreator(
     val headerUrl: String,
     val postCount: Int = 0,
     val videoCount: Int = 0,
-    val imageCount: Int = 0
+    val imageCount: Int = 0,
+    val savedAt: Long = System.currentTimeMillis()
 )
+
+typealias OnlyhavenModel = OnlyhavenCreator
 
 data class OnlyhavenMediaItem(
     val id: String,
@@ -64,6 +67,26 @@ object OnlyhavenScraper {
     private const val WEB_BASE = "https://cum.st"
     private const val IMG_BASE = "https://img.cum.st"
     private const val MEDIA_BASE = "https://e1.cum.st/media"
+
+    suspend fun getModels(
+        page: Int = 1,
+        query: String = "",
+        sort: String = "bookmarked"
+    ): List<OnlyhavenModel> = getCreators(page = page, query = query, sort = sort)
+
+    suspend fun getModelMedia(
+        service: String = "onlyfans",
+        modelId: String = "",
+        modelName: String = "",
+        page: Int = 1,
+        limit: Int = 40
+    ): List<OnlyhavenMediaItem> = getCreatorMedia(
+        service = service,
+        creatorId = modelId,
+        creatorName = modelName,
+        page = page,
+        limit = limit
+    )
 
     suspend fun getCreators(
         page: Int = 1,
@@ -235,7 +258,7 @@ object OnlyhavenScraper {
                     val origUrl = if (kind == "video") {
                         "$MEDIA_BASE/$sha256/original.mp4"
                     } else {
-                        "$MEDIA_BASE/$sha256/original.$ext?response-content-disposition=inline;"
+                        "$MEDIA_BASE/$sha256/original.$ext?response-content-disposition=inline"
                     }
 
                     postMediaList.add(

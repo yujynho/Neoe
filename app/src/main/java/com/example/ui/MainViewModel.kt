@@ -1977,7 +1977,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                 headerUrl = obj.optString("headerUrl"),
                                 postCount = obj.optInt("postCount", 0),
                                 videoCount = obj.optInt("videoCount", 0),
-                                imageCount = obj.optInt("imageCount", 0)
+                                imageCount = obj.optInt("imageCount", 0),
+                                savedAt = obj.optLong("savedAt", System.currentTimeMillis() - i * 1000L)
                             )
                         )
                     }
@@ -2007,6 +2008,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     obj.put("postCount", c.postCount)
                     obj.put("videoCount", c.videoCount)
                     obj.put("imageCount", c.imageCount)
+                    obj.put("savedAt", c.savedAt)
                     jsonArray.put(obj)
                 }
                 prefs.edit().putString("saved_creators_json", jsonArray.toString()).apply()
@@ -2023,7 +2025,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val updated = if (exists) {
             current.filterNot { "${it.service}_${it.id}" == key || (it.id == creator.id && it.service == creator.service) }
         } else {
-            listOf(creator) + current
+            val entry = creator.copy(savedAt = System.currentTimeMillis())
+            listOf(entry) + current
         }
         _savedOnlyhavenCreators.value = updated
         _savedCreatorKeys.value = updated.map { "${it.service}_${it.id}" }.toSet()
