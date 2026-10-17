@@ -439,7 +439,6 @@ fun PlayerControlsOverlay(
                                     modifier = Modifier.size(if (isFullscreen) 22.dp else 20.dp)
                                 )
                             }
-                        }
 
                         // Settings Button (Rightmost on the row) with Popup to its Left
                         Row(
